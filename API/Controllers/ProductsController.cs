@@ -3,6 +3,7 @@ using API.DTOs;
 using API.Entities;
 using API.Interfaces;
 using API.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +15,13 @@ namespace API.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductServices _productService;
+        
+        private readonly IValidator<CreateUpdateProductDTO> _productValidator;
 
-        public ProductsController(IProductServices productService)
+        public ProductsController(IProductServices productService, IValidator<CreateUpdateProductDTO> validator)
         {
             _productService = productService;
+            _productValidator = validator;
         }
 
         [HttpPost]
@@ -25,6 +29,13 @@ namespace API.Controllers
         {
             try
             {
+                var validationResult = _productValidator.Validate(dto);
+
+                if (!validationResult.IsValid)
+                {
+                    return BadRequest(validationResult.Errors);
+                }
+
                 var newProduct = await _productService.CreateProduct(dto);
                 return Ok(newProduct);
             }
@@ -77,6 +88,8 @@ namespace API.Controllers
         {
             try
             {
+                var validationResult = _productValidator.Validate(dto);
+
                 var updated = await _productService.UpdateProduct(id, dto);
 
                 if (!updated)

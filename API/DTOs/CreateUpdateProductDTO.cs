@@ -2,8 +2,8 @@
 {
     public class CreateUpdateProductDTO
     {
-        public string Brand { get; set; }
+        public required string Brand { get; set; }
 
-        public string Title { get; set; }
+        public required string Title { get; set; }
     }
 }

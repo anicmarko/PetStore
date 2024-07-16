@@ -8,9 +8,9 @@ namespace API.Entities
         [Key]
         public Guid Id { get; set; }
 
-        public  string Brand { get; set; }
+        public required string Brand { get; set; }
 
-        public string Title { get; set; }
+        public required string Title { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

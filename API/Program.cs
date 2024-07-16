@@ -3,7 +3,16 @@ using API.Context;
 using API.Interfaces;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
+
+
+
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using System.Data.Common;
+using System;
+using API.Entities;
+using API.Validation;
+using API.DTOs;
 
 namespace API
 {
@@ -22,8 +31,13 @@ namespace API
             });
 
             builder.Services.AddScoped<IProductServices,ProductService>();
-            
+            builder.Services.AddScoped<IValidator<CreateUpdateProductDTO>, ProductValidation>();
+
+
+            builder.Services.AddValidatorsFromAssemblyContaining<ProductValidation>();
             builder.Services.AddControllers();
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddFluentValidationClientsideAdapters();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
