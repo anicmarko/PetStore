@@ -4,8 +4,9 @@ namespace API.Entities
 {
     public class ProductEntity
     {
+        //TODO Fluent validation
         [Key]
-        public long Id { get; set; }
+        public Guid Id { get; set; }
 
         public  string Brand { get; set; }
 

@@ -1,6 +1,8 @@
 ﻿using API.Context;
 using API.DTOs;
 using API.Entities;
+using API.Interfaces;
+using API.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,50 +13,51 @@ namespace API.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IProductServices _productService;
 
-        public ProductsController(AppDbContext context)
+        public ProductsController(IProductServices productService)
         {
-            _context = context;
+            _productService = productService;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] CreateUpdateProductDTO dto)
         {
-            try {
-                var newProduct = new ProductEntity()
-                {
-                    Brand = dto.Brand,
-                    Title = dto.Title
-                };
-
-                await _context.Products.AddAsync(newProduct);
-                await _context.SaveChangesAsync();
-
-                return Ok("Product added succesful");
-            } catch (Exception ex) {
+            try
+            {
+                var newProduct = await _productService.CreateProduct(dto);
+                return Ok(newProduct);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
-           
         }
 
         [HttpGet]
         public async Task<ActionResult<List<ProductEntity>>> GetProducts()
         {
-            try {
-                var products = await _context.Products.ToListAsync();
+            try
+            {
+                var products = await _productService.GetProducts();
                 return Ok(products);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
 
-        [HttpGet]
-        [Route("{id}")]
-        public async Task<ActionResult<ProductEntity>> GetProductById(int id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ProductEntity>> GetProductById(Guid id)
         {
-            try {
-                var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var product = await _productService.GetProductById(id);
 
                 if (product == null)
                 {
@@ -62,57 +65,55 @@ namespace API.Controllers
                 }
 
                 return Ok(product);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
-           
         }
 
-        [HttpPut]
-        [Route("{id}")]
-
-        public async Task<ActionResult> UpdateProduct([FromRoute] long id, [FromBody] CreateUpdateProductDTO dto)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateUpdateProductDTO dto)
         {
             try
             {
-                var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+                var updated = await _productService.UpdateProduct(id, dto);
 
-                if (product == null)
+                if (!updated)
                 {
                     return NotFound();
                 }
 
-                product.Brand = dto.Brand;
-                product.Title = dto.Title;
-
-                await _context.SaveChangesAsync();
-
-                return Ok("Product updated succesful");
-
-            } catch (Exception ex) {
+                return Ok("Product updated successfully");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
 
-        [HttpDelete]
-        [Route("{id}")]
-
-        public async Task<ActionResult> DeleteProduct([FromRoute] long id)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(Guid id)
         {
-            try {
-                var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+            try
+            {
+                var deleted = await _productService.DeleteProduct(id);
 
-                if(product == null)
+                if (!deleted)
                 {
                     return NotFound();
                 }
 
-                _context.Products.Remove(product);
-                await _context.SaveChangesAsync();
-
-                return Ok("Product deleted succesful");
-            } catch (Exception ex) {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);}
+                return Ok("Product deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
         }
     }
 }

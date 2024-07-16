@@ -1,5 +1,7 @@
 
 using API.Context;
+using API.Interfaces;
+using API.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Common;
 
@@ -16,9 +18,10 @@ namespace API
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 var connectionString = builder.Configuration.GetConnectionString("local");
-                Console.WriteLine(connectionString);
                 options.UseSqlServer(connectionString);
             });
+
+            builder.Services.AddScoped<IProductServices,ProductService>();
             
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
