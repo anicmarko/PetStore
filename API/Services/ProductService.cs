@@ -8,19 +8,15 @@ namespace API.Services
 {
     public class ProductService : IProductServices
     {
-        private readonly AppDbContext _context;
+        private readonly IProductRepository _productRepository;
 
-        public ProductService(AppDbContext context)
+        public ProductService(IProductRepository productRepository)
         {
-            _context = context;
+            _productRepository = productRepository;
         }
 
         public async Task<ProductEntity> CreateProduct(CreateUpdateProductDTO dto)
         {
-            if (string.IsNullOrEmpty(dto.Brand) || string.IsNullOrEmpty(dto.Title))
-            {
-                throw new ArgumentException("Brand and Title are required");
-            }
 
             var newProduct = new ProductEntity()
             {
@@ -28,64 +24,33 @@ namespace API.Services
                 Title = dto.Title
             };
 
-            await _context.Products.AddAsync(newProduct);
-            await _context.SaveChangesAsync();
+            await _productRepository.AddAsync(newProduct);
 
             return newProduct;
         }
 
         public async Task<List<ProductEntity>> GetProducts()
         {
-            return await _context.Products.ToListAsync();
+            return await _productRepository.GetAll().ToListAsync();
         }
 
         public async Task<ProductEntity> GetProductById(Guid id)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
-
-            if (product == null)
-            {
-                throw new ArgumentException($"Product with ID {id} not found");
-            }
-
-            return product;
+            return await _productRepository.GetByIdAsync(id);
         }
 
         public async Task<bool> UpdateProduct(Guid id, CreateUpdateProductDTO dto)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
-
-            if (product == null)
+            return await _productRepository.UpdateAsync(new ProductEntity()
             {
-                return false;
-            }
-
-            if (string.IsNullOrEmpty(dto.Brand) || string.IsNullOrEmpty(dto.Title))
-            {
-                throw new ArgumentException("Brand and Title are required");
-            }
-
-            product.Brand = dto.Brand;
-            product.Title = dto.Title;
-
-            await _context.SaveChangesAsync();
-
-            return true;
+                Brand = dto.Brand,
+                Title = dto.Title
+            });
         }
 
         public async Task<bool> DeleteProduct(Guid id)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
-
-            if (product == null)
-            {
-                return false;
-            }
-
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-
-            return true;
+            return await _productRepository.DeleteAsync(id);
         }
     }
 }

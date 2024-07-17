@@ -13,6 +13,7 @@ using System;
 using API.Entities;
 using API.Validation;
 using API.DTOs;
+using API.Repository;
 
 namespace API
 {
@@ -32,7 +33,7 @@ namespace API
 
             builder.Services.AddScoped<IProductServices,ProductService>();
             builder.Services.AddScoped<IValidator<CreateUpdateProductDTO>, ProductValidation>();
-
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
             builder.Services.AddValidatorsFromAssemblyContaining<ProductValidation>();
             builder.Services.AddControllers();
