@@ -11,5 +11,7 @@ namespace API.Context
         }
         
         public DbSet<ProductEntity> Products { get; set; }
+
+        public DbSet<UserEntity> Users { get; set; }
     }
 }

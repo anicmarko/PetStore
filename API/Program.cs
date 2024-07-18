@@ -14,6 +14,9 @@ using API.Entities;
 using API.Validation;
 using API.DTOs;
 using API.Repository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace API
 {
@@ -31,14 +34,40 @@ namespace API
                 options.UseSqlServer(connectionString);
             });
 
-            builder.Services.AddScoped<IProductServices,ProductService>();
+            builder.Services.AddScoped<IProductServices, ProductService>();
             builder.Services.AddScoped<IValidator<CreateUpdateProductDTO>, ProductValidation>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
+
             builder.Services.AddValidatorsFromAssemblyContaining<ProductValidation>();
-            builder.Services.AddControllers();
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddFluentValidationClientsideAdapters();
+            builder.Services.AddControllers();
+
+
+            builder.Services.AddScoped<IUser, UserRepository>();
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
+                };
+            });
+           
+
+            
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -54,6 +83,7 @@ namespace API
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 

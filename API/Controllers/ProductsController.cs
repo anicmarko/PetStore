@@ -4,6 +4,7 @@ using API.Entities;
 using API.Interfaces;
 using API.Services;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +50,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<ProductEntity>>> GetProducts()
         {
@@ -63,6 +65,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<ProductEntity>> GetProductById(Guid id)
         {
@@ -83,6 +86,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateUpdateProductDTO dto)
         {
@@ -109,6 +113,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(Guid id)
         {
