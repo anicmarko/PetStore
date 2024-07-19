@@ -1,8 +1,7 @@
-﻿using API.Context;
-using API.DTOs;
-using API.Entities;
-using API.Interfaces;
-using API.Services;
+﻿using BLL.DTOs;
+using DAL.Entities;
+using BLL.Services;
+using BLL.Interfaces;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -25,6 +24,7 @@ namespace API.Controllers
             _productValidator = validator;
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] CreateUpdateProductDTO dto)
         {
@@ -50,7 +50,6 @@ namespace API.Controllers
             }
         }
 
-        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<ProductEntity>>> GetProducts()
         {
@@ -65,7 +64,7 @@ namespace API.Controllers
             }
         }
 
-        [Authorize]
+        
         [HttpGet("{id}")]
         public async Task<ActionResult<ProductEntity>> GetProductById(Guid id)
         {
