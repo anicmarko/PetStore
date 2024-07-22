@@ -6,7 +6,7 @@ namespace DAL.Interfaces
     {
         Task<ProductEntity> AddAsync(ProductEntity product);
         Task<bool> DeleteAsync(Guid id);
-        IQueryable<ProductEntity> GetAll();
+        Task<List<ProductEntity>> GetAll();
         Task<ProductEntity> GetByIdAsync(Guid id);
         Task<bool> UpdateAsync(ProductEntity product);
 

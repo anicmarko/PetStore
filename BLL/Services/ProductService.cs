@@ -5,6 +5,7 @@ using DAL.Entities;
 using BLL.Interfaces;
 using DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BLL.Extensions;
 
 namespace BLL.Services
 {
@@ -19,13 +20,9 @@ namespace BLL.Services
 
         public async Task<ProductEntity> CreateProduct(CreateUpdateProductDTO dto)
         {
+            ArgumentNullException.ThrowIfNull(dto);
 
-            var newProduct = new ProductEntity()
-            {
-                Brand = dto.Brand,
-                Title = dto.Title
-            };
-
+            var newProduct = dto.ToEntity();
             await _productRepository.AddAsync(newProduct);
 
             return newProduct;
@@ -33,7 +30,7 @@ namespace BLL.Services
 
         public async Task<List<ProductEntity>> GetProducts()
         {
-            return await _productRepository.GetAll().ToListAsync();
+            return await _productRepository.GetAll();
         }
 
         public async Task<ProductEntity> GetProductById(Guid id)
@@ -43,11 +40,7 @@ namespace BLL.Services
 
         public async Task<bool> UpdateProduct(Guid id, CreateUpdateProductDTO dto)
         {
-            return await _productRepository.UpdateAsync(new ProductEntity()
-            {
-                Brand = dto.Brand,
-                Title = dto.Title
-            });
+            return await _productRepository.UpdateAsync(dto.ToEntity());
         }
 
         public async Task<bool> DeleteProduct(Guid id)

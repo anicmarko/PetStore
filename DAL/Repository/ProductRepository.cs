@@ -32,9 +32,9 @@ namespace DAL.Repository
             return true;
         }
 
-        public IQueryable<ProductEntity> GetAll()
+        public async Task<List<ProductEntity>> GetAll()
         {
-            return _context.Products.AsQueryable();
+            return await _context.Products.ToListAsync();
         }
 
         public async Task<ProductEntity> GetByIdAsync(Guid id)

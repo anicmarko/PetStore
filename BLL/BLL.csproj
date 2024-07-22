@@ -7,11 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="NewFolder\**" />
     <Compile Remove="Validation\bin\**" />
-    <EmbeddedResource Remove="NewFolder\**" />
     <EmbeddedResource Remove="Validation\bin\**" />
-    <None Remove="NewFolder\**" />
     <None Remove="Validation\bin\**" />
   </ItemGroup>
 
