@@ -20,7 +20,7 @@ namespace DAL.Repository
         }
 
         public async Task<UserEntity?> GetUserByEmailAsync(string email) =>
-             await _context.Users.FirstOrDefaultAsync(x => x.Email == email);
+             await _context.Users.FirstOrDefaultAsync(user => user.Email == email);
 
         public async Task<UserEntity?> AddUserAsync(UserEntity user)
         {

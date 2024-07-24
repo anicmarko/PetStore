@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace API.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class ProductsController : ControllerBase
     {
@@ -18,13 +19,13 @@ namespace API.Controllers
         
         private readonly IValidator<CreateUpdateProductDTO> _productValidator;
 
+
         public ProductsController(IProductServices productService, IValidator<CreateUpdateProductDTO> validator)
         {
             _productService = productService;
             _productValidator = validator;
         }
 
-        [Authorize]
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] CreateUpdateProductDTO dto)
         {
@@ -50,6 +51,8 @@ namespace API.Controllers
             }
         }
 
+
+
         [HttpGet]
         public async Task<ActionResult<List<ProductEntity>>> GetProducts()
         {
@@ -66,7 +69,7 @@ namespace API.Controllers
 
         
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProductEntity>> GetProductById(Guid id)
+        public async Task<ActionResult<ProductEntity>> GetProductById(int id)
         {
             try
             {
@@ -85,9 +88,8 @@ namespace API.Controllers
             }
         }
 
-        [Authorize]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateUpdateProductDTO dto)
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] CreateUpdateProductDTO dto)
         {
             try
             {
@@ -112,9 +114,8 @@ namespace API.Controllers
             }
         }
 
-        [Authorize]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(Guid id)
+        public async Task<IActionResult> DeleteProduct(int id)
         {
             try
             {

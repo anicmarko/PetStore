@@ -26,7 +26,6 @@ namespace API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 var connectionString = builder.Configuration.GetConnectionString("local");
@@ -104,14 +103,17 @@ namespace API
 
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
-            
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+            builder.Services.AddScoped<IUserProductRepository, UserProductRepository>();
+            builder.Services.AddScoped<IUserProductService, UserProductService>();
+
+            builder.Services.AddHttpContextAccessor();
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

@@ -22,9 +22,9 @@ namespace DAL.Repository
             return product;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(Guid userId, int id)
         {
-            var product = await GetByIdAsync(id);
+            var product = await GetByIdAsync(userId,id);
             if (product == null) return false;
 
             _context.Products.Remove(product);
@@ -32,16 +32,22 @@ namespace DAL.Repository
             return true;
         }
 
-        public async Task<List<ProductEntity>> GetAll()
+        public async Task<List<ProductEntity>> GetAll(Guid userId)
         {
-            return await _context.Products.ToListAsync();
+            return await _context.Products
+                .Where(p => p.OwnerId == userId)
+                .ToListAsync();
         }
 
-        public async Task<ProductEntity> GetByIdAsync(Guid id)
+        public async Task<ProductEntity> GetByIdAsync(Guid userId, int id)
         {
-            return await _context.Products.FirstOrDefaultAsync(x => x.Id == id)
+            return await _context.Products
+                   .Where(p => p.OwnerId == userId && p.Id == id)
+                   .FirstOrDefaultAsync()
                    ?? throw new InvalidOperationException("Product not found");
+
         }
+
 
         public async Task<bool> UpdateAsync(ProductEntity product)
         {

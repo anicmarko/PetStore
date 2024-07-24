@@ -4,9 +4,7 @@ namespace DAL.Entities
 {
     public class ProductEntity
     {
-        //TODO Fluent validation
-        [Key]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         public required string Brand { get; set; }
 
@@ -15,5 +13,11 @@ namespace DAL.Entities
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+        public List<UserEntity> Users { get; } = [];
+
+        public Guid OwnerId { get; set; }
+
+        public UserEntity Owner { get; set; }
     }
 }

@@ -21,8 +21,9 @@ namespace API.Controllers
         {
             var response = await _user.LoginUser(dto);
 
-            if (response == null)
-                return Unauthorized(response);
+            if (response == null || !response.Flag)
+                return Unauthorized("Authentication failed.");
+
 
             return Ok(response);
         }
