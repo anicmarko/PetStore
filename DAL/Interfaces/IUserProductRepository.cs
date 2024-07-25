@@ -13,9 +13,6 @@ namespace DAL.Interfaces
         Task<bool> DeleteAsync(Guid userId, int productId);
 
         Task<List<ProductEntity>> GetProductsByUser(Guid userId);
-        Task<bool> IsProductInUser(Guid userId, int productId);
-        Task<bool> IsUserInProduct(Guid userId, int productId);
-
 
     }
 }

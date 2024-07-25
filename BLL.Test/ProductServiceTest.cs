@@ -11,6 +11,9 @@ using Moq;
 using NSubstitute;
 using BLL.Extensions;
 using System.ComponentModel;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 
 
 namespace BLL.Test
@@ -18,12 +21,30 @@ namespace BLL.Test
     public class ProductServiceTest
     {
         private readonly Mock<IProductRepository> _mockRepo;
+        private readonly Mock<IHttpContextAccessor> _mockAccessor;
         private readonly ProductService _service;
+        private readonly Guid _userId;
+
 
         public ProductServiceTest()
         {
+            _userId = Guid.NewGuid(); // Initialize _userId first
+
             _mockRepo = new Mock<IProductRepository>();
-            _service = new ProductService(_mockRepo.Object);
+            _mockAccessor = new Mock<IHttpContextAccessor>();
+
+            var context = new DefaultHttpContext();
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, _userId.ToString())
+            };
+            var identity = new ClaimsIdentity(claims, "TestAuthType");
+            var principal = new ClaimsPrincipal(identity);
+            context.User = principal;
+
+            _mockAccessor.Setup(a => a.HttpContext).Returns(context);
+
+            _service = new ProductService(_mockRepo.Object, _mockAccessor.Object);
         }
 
         [Theory]
@@ -47,11 +68,11 @@ namespace BLL.Test
         {
             var products = new List<ProductEntity>
             {
-                new ProductEntity { Id = Guid.NewGuid(), Brand = brand, Title = title },
-                new ProductEntity { Id = Guid.NewGuid(), Brand = brand, Title = title }
+                new ProductEntity { Id = 1, Brand = brand, Title = title , OwnerId = _userId},
+                new ProductEntity { Id = 2, Brand = brand, Title = title , OwnerId = _userId}
             };
 
-            _mockRepo.Setup(repo => repo.GetAll()).ReturnsAsync(products);
+            _mockRepo.Setup(repo => repo.GetAll(_userId)).ReturnsAsync(products);
 
             // Act
             var result = await _service.GetProducts();
@@ -59,17 +80,24 @@ namespace BLL.Test
             // Assert
             Assert.NotNull(result);
             Assert.Equal(2, result.Count);
+            Assert.All(result, product =>
+            {
+                Assert.Equal(brand, product.Brand);
+                Assert.Equal(title, product.Title);
+            });
         }
+
+
 
 
         [Theory]
         [InlineData("pedigre", "piletina")]
         public async Task GetProductById_ShouldReturnProduct_WhenProductExists(string brand, string title)
         {
-            var productId = Guid.NewGuid();
+            var productId = 1;
 
-            var expectedProduct = new ProductEntity { Id = productId , Brand = brand, Title= title};
-            _mockRepo.Setup(repo => repo.GetByIdAsync(productId)).ReturnsAsync(expectedProduct);
+            var expectedProduct = new ProductEntity { Id = productId , Brand = brand, Title= title, OwnerId = _userId};
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId,productId)).ReturnsAsync(expectedProduct);
 
             var result = await _service.GetProductById(productId);
 
@@ -77,28 +105,49 @@ namespace BLL.Test
         }
 
         [Theory]
-        [InlineData("pedigree","piletina")]
+        [InlineData("pedigree", "piletina")]
         public async Task UpdateProduct_ShouldReturnTrue_WhenProductIsUpdated(string brand, string title)
         {
-            var productId = Guid.NewGuid();
-            var dto = new CreateUpdateProductDTO { Brand = brand, Title = title }; 
+            var productId = 1;
+            var dto = new CreateUpdateProductDTO { Brand = brand, Title = title };
+            var existingProduct = new ProductEntity { Id = productId, Brand = "oldBrand", Title = "oldTitle", OwnerId = _userId };
+
+            // Setup the mock to return the existing product when GetByIdAsync is called
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productId)).ReturnsAsync(existingProduct);
+
+            // Setup the mock to return true when UpdateAsync is called
             _mockRepo.Setup(repo => repo.UpdateAsync(It.IsAny<ProductEntity>())).ReturnsAsync(true);
 
+            // Act
             var result = await _service.UpdateProduct(productId, dto);
 
-            _mockRepo.Verify(repo => repo.UpdateAsync(It.IsAny<ProductEntity>()), Times.Once);
+            // Assert
+            _mockRepo.Verify(repo => repo.UpdateAsync(It.Is<ProductEntity>(p => p.Id == productId && p.Brand == brand && p.Title == title)), Times.Once);
             Assert.True(result);
         }
+
 
         [Fact]
         public async Task DeleteProduct_ShouldReturnTrue_WhenProductIsDeleted()
         {
-            var productId = Guid.NewGuid();
-            _mockRepo.Setup(repo => repo.DeleteAsync(productId)).ReturnsAsync(true);
+            var productId = 1;
+            var existingProduct = new ProductEntity { Id = productId, Brand="Pedigree", Title="Piletina", OwnerId = _userId };
+
+            // Setup the mock to return the existing product when GetByIdAsync is called
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productId)).ReturnsAsync(existingProduct);
+
+            // Setup the mock to return true when DeleteAsync is called with the correct parameters
+            _mockRepo.Setup(repo => repo.DeleteAsync(_userId, productId)).ReturnsAsync(true);
+
+            // Act
             var result = await _service.DeleteProduct(productId);
-            _mockRepo.Verify(repo => repo.DeleteAsync(productId), Times.Once);
+
+            // Assert
+            _mockRepo.Verify(repo => repo.GetByIdAsync(_userId, productId), Times.Once);
+            _mockRepo.Verify(repo => repo.DeleteAsync(_userId, productId), Times.Once);
             Assert.True(result);
         }
+
 
         // Test for creating a product with null DTO
         [Fact]
@@ -111,8 +160,8 @@ namespace BLL.Test
         [Fact]
         public async Task GetProductById_ShouldReturnNull_WhenProductDoesNotExist()
         {
-            var nonExistentId = Guid.NewGuid();
-            _mockRepo.Setup(repo => repo.GetByIdAsync(nonExistentId)).ReturnsAsync((ProductEntity)null);
+            var nonExistentId = 1;
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId,nonExistentId)).ReturnsAsync((ProductEntity)null);
 
             var result = await _service.GetProductById(nonExistentId);
 
@@ -122,35 +171,55 @@ namespace BLL.Test
         // Test for updating a product that does not exist
         [Theory]
         [InlineData("nonexistentBrand", "nonexistentTitle")]
-        public async Task UpdateProduct_ShouldReturnFalse_WhenProductDoesNotExist(string brand, string title)
+        public async Task UpdateProduct_ShouldThrowProductNotFoundException_WhenProductDoesNotExist(string brand, string title)
         {
-            var nonExistentId = Guid.NewGuid();
+            var nonExistentId = 1;
             var dto = new CreateUpdateProductDTO { Brand = brand, Title = title };
-            _mockRepo.Setup(repo => repo.UpdateAsync(It.IsAny<ProductEntity>())).ReturnsAsync(false);
 
-            var result = await _service.UpdateProduct(nonExistentId, dto);
+            // Setup the mock to throw ProductNotFoundException when GetByIdAsync is called with the non-existent product ID and _userId
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, nonExistentId)).ThrowsAsync(new ValidationException("Product not found"));
 
-            Assert.False(result);
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidationException>(() => _service.UpdateProduct(nonExistentId, dto));
+
+            // Verify that GetByIdAsync was called once
+            _mockRepo.Verify(repo => repo.GetByIdAsync(_userId, nonExistentId), Times.Once);
+            // Verify that UpdateAsync was never called
+            _mockRepo.Verify(repo => repo.UpdateAsync(It.IsAny<ProductEntity>()), Times.Never);
+            // Assert the exception message
+            Assert.Equal("Product not found", exception.Message);
         }
+
+
 
         // Test for deleting a product that does not exist
         [Fact]
-        public async Task DeleteProduct_ShouldReturnFalse_WhenProductDoesNotExist()
+        public async Task DeleteProduct_ShouldThrowProductNotFoundException_WhenProductDoesNotExist()
         {
-            var nonExistentId = Guid.NewGuid();
-            _mockRepo.Setup(repo => repo.DeleteAsync(nonExistentId)).ReturnsAsync(false);
+            var nonExistentId = 1;
 
-            var result = await _service.DeleteProduct(nonExistentId);
+            // Setup the mock to throw ProductNotFoundException when GetByIdAsync is called with the non-existent product ID and _userId
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, nonExistentId)).ReturnsAsync((ProductEntity)null);
 
-            Assert.False(result);
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidationException>(() => _service.DeleteProduct(nonExistentId));
+
+            // Verify that GetByIdAsync was called once
+            _mockRepo.Verify(repo => repo.GetByIdAsync(_userId, nonExistentId), Times.Once);
+            // Verify that DeleteAsync was never called
+            _mockRepo.Verify(repo => repo.DeleteAsync(_userId, nonExistentId), Times.Never);
+            // Assert the exception message
+            Assert.Equal("Product not found", exception.Message);
         }
+
+
 
         // Test for getting all products when there are none
         [Fact]
         public async Task GetProducts_ShouldReturnEmptyList_WhenNoProductsExist()
         {
             var emptyList = new List<ProductEntity>();
-            _mockRepo.Setup(repo => repo.GetAll()).ReturnsAsync(emptyList);
+            _mockRepo.Setup(repo => repo.GetAll(_userId)).ReturnsAsync(emptyList);
             var result = await _service.GetProducts();
 
             Assert.Empty(result);
@@ -161,40 +230,51 @@ namespace BLL.Test
         [Fact]
         public async Task UpdateProduct_ShouldUpdateFieldsCorrectly()
         {
-            var productId = Guid.NewGuid();
+            var productId = 1;
             var dto = new CreateUpdateProductDTO { Brand = "UpdatedBrand", Title = "UpdatedTitle" };
-            var productToUpdate = new ProductEntity { Id = productId, Brand = "Brand", Title = "Title" };
+            var productToUpdate = new ProductEntity { Id = productId, Brand = "Brand", Title = "Title", OwnerId = _userId };
 
-            _mockRepo.Setup(repo => repo.GetByIdAsync(productId)).ReturnsAsync(productToUpdate);
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productId)).ReturnsAsync(productToUpdate);
             _mockRepo.Setup(repo => repo.UpdateAsync(It.IsAny<ProductEntity>())).ReturnsAsync(true);
 
             var result = await _service.UpdateProduct(productId, dto);
 
             Assert.True(result);
-            _mockRepo.Verify(repo => repo.UpdateAsync(It.Is<ProductEntity>(p => p.Brand == dto.Brand && p.Title == dto.Title)), Times.Once);
+            _mockRepo.Verify(repo => repo.UpdateAsync(It.Is<ProductEntity>(p => p.Id == productId && p.Brand == dto.Brand && p.Title == dto.Title)), Times.Once);
         }
+
 
 
         [Fact]
         public async Task DeleteProduct_ShouldNotAffectOtherProducts()
         {
-            var productIdToDelete = Guid.NewGuid();
-            var otherProductId = Guid.NewGuid();
+            var productIdToDelete = 1;
+            var otherProductId = 2;
             var products = new List<ProductEntity>
             {
-                new ProductEntity { Id = productIdToDelete, Brand = "Brand", Title = "TitleToDelete" },
-                new ProductEntity { Id = otherProductId, Brand = "Brand", Title = "OtherTitle" }
+                new ProductEntity { Id = productIdToDelete, Brand = "Brand", Title = "TitleToDelete", OwnerId = _userId },
+                new ProductEntity { Id = otherProductId, Brand = "Brand", Title = "OtherTitle", OwnerId = _userId }
             };
 
-            _mockRepo.Setup(repo => repo.DeleteAsync(productIdToDelete)).ReturnsAsync(true);
-            _mockRepo.Setup(repo => repo.GetAll()).ReturnsAsync(products.Where(p => p.Id != productIdToDelete).ToList());
+            // Setup the mock to return the existing product when GetByIdAsync is called
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productIdToDelete)).ReturnsAsync(products.First(p => p.Id == productIdToDelete));
 
+            // Setup the mock to return true when DeleteAsync is called with the correct parameters
+            _mockRepo.Setup(repo => repo.DeleteAsync(_userId, productIdToDelete)).ReturnsAsync(true);
+
+            // Setup the mock to return the remaining products when GetAll is called
+            _mockRepo.Setup(repo => repo.GetAll(_userId)).ReturnsAsync(products.Where(p => p.Id != productIdToDelete).ToList());
+
+            // Act
             await _service.DeleteProduct(productIdToDelete);
             var remainingProducts = await _service.GetProducts();
 
+            // Assert
             Assert.Single(remainingProducts);
             Assert.DoesNotContain(remainingProducts, p => p.Id == productIdToDelete);
+            Assert.Contains(remainingProducts, p => p.Id == otherProductId);
         }
+
 
         [Fact]
         public async Task CreateProduct_ShouldSetId()
@@ -205,7 +285,7 @@ namespace BLL.Test
             // Setup the mock to capture the ProductEntity passed to AddAsync and to simulate setting an Id on the entity
             _mockRepo.Setup(repo => repo.AddAsync(It.IsAny<ProductEntity>()))
                      .Callback<ProductEntity>(p => {
-                         p.Id = Guid.NewGuid(); // Simulate the repository setting a new Id
+                         p.Id = 1; // Simulate the repository setting a new Id
                          productPassedToAddAsync = p;
                      })
                      .ReturnsAsync(() => productPassedToAddAsync); // Return the modified entity
@@ -213,22 +293,24 @@ namespace BLL.Test
             var result = await _service.CreateProduct(dto);
 
             _mockRepo.Verify(repo => repo.AddAsync(It.IsAny<ProductEntity>()), Times.Once);
-            Assert.NotEqual(Guid.Empty, result.Id);
+            Assert.NotEqual(0, result.Id);
         }
 
 
         [Fact]
         public async Task GetProductById_ShouldHandleCaseSensitivity()
         {
-            var productId = Guid.NewGuid();
-            var product = new ProductEntity { Id = productId, Brand = "Brand", Title = "CaseSensitiveTitle" };
+            var productId = 1;
+            var product = new ProductEntity { Id = productId, Brand = "Brand", Title = "CaseSensitiveTitle", OwnerId= _userId };
 
-            _mockRepo.Setup(repo => repo.GetByIdAsync(productId)).ReturnsAsync(product);
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productId)).ReturnsAsync(product);
 
             var result = await _service.GetProductById(productId);
 
-            Assert.Equal("CaseSensitiveTitle", result.Title);
+            Assert.NotNull(result);
+            Assert.Equal("CaseSensitiveTitle", result.Title, ignoreCase: false);
         }
+
 
 
 

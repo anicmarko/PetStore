@@ -58,27 +58,5 @@ namespace DAL.Repository
             return user.Products.ToList();
         }
 
-
-        public async Task<bool> IsProductInUser(Guid userId, int productId)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            var product = await _context.Products.FindAsync(productId);
-
-            if (user == null || product == null)
-                throw new InvalidOperationException("User or product not found");
-
-            return user.Products.Contains(product);
-        }
-
-        public async Task<bool> IsUserInProduct(Guid userId, int productId)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            var product = await _context.Products.FindAsync(productId);
-
-            if (user == null || product == null)
-                throw new InvalidOperationException("User or product not found");
-
-            return product.Users.Contains(user);
-        }
     }
 }

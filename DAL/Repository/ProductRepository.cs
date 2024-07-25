@@ -51,7 +51,14 @@ namespace DAL.Repository
 
         public async Task<bool> UpdateAsync(ProductEntity product)
         {
-            _context.Products.Update(product);
+            var existingProduct = GetByIdAsync(product.OwnerId, product.Id);
+
+            if (existingProduct == null)
+            {
+                return false; // Return false if the product is not found
+            }
+
+            _context.Entry(existingProduct).CurrentValues.SetValues(product);
             await SaveChangesAsync();
             return true;
         }
