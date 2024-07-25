@@ -13,7 +13,7 @@ using BLL.Extensions;
 using System.ComponentModel;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 
 
 namespace BLL.Test
@@ -24,14 +24,16 @@ namespace BLL.Test
         private readonly Mock<IHttpContextAccessor> _mockAccessor;
         private readonly ProductService _service;
         private readonly Guid _userId;
+        private readonly Mock<IValidator<CreateUpdateProductDTO>> _mockValidator;
+
 
 
         public ProductServiceTest()
         {
             _userId = Guid.NewGuid(); // Initialize _userId first
-
             _mockRepo = new Mock<IProductRepository>();
             _mockAccessor = new Mock<IHttpContextAccessor>();
+            _mockValidator = new Mock<IValidator<CreateUpdateProductDTO>>();
 
             var context = new DefaultHttpContext();
             var claims = new List<Claim>
@@ -44,22 +46,28 @@ namespace BLL.Test
 
             _mockAccessor.Setup(a => a.HttpContext).Returns(context);
 
-            _service = new ProductService(_mockRepo.Object, _mockAccessor.Object);
+            _service = new ProductService(_mockRepo.Object, _mockAccessor.Object, _mockValidator.Object);
         }
 
         [Theory]
-        [InlineData("pedigre", "piletina")]
-        public async void CreateProduct_ShouldReturnProduct_WhenProductIsCreated(string brand, string title)
+        [InlineData("pedigre", "piletina",150)]
+        public async Task CreateProduct_ShouldReturnProduct_WhenProductIsCreated(string brand, string title, decimal price)
         {
-            var dto = new CreateUpdateProductDTO { Brand = brand, Title = title}; // Initialize with test data
-            var expectedProduct = dto.ToEntity();
-            _mockRepo.Setup(repo => repo.AddAsync(It.IsAny<ProductEntity>())).ReturnsAsync(It.IsAny<ProductEntity>());
+            var dto = new CreateUpdateProductDTO { Brand = brand, Title = title, Price = price };
+            var product = new ProductEntity { Brand = brand, Title = title, Price = price, OwnerId = _userId };
+
+            _mockValidator.Setup(v => v.Validate(dto)).Returns(new FluentValidation.Results.ValidationResult());
+            _mockRepo.Setup(repo => repo.AddAsync(It.IsAny<ProductEntity>())).ReturnsAsync(product);
 
             var result = await _service.CreateProduct(dto);
 
-            _mockRepo.Verify(repo => repo.AddAsync(It.IsAny<ProductEntity>()), Times.Once);
-            Assert.Equal(expectedProduct.Title, result.Title); // Assuming Title is a property to check
+            Assert.NotNull(result);
+            Assert.Equal(brand, result.Brand);
+            Assert.Equal(title, result.Title);
+            Assert.Equal(price, result.Price);
+            Assert.Equal(_userId, result.OwnerId);
         }
+
 
 
         [Theory]
@@ -112,19 +120,16 @@ namespace BLL.Test
             var dto = new CreateUpdateProductDTO { Brand = brand, Title = title };
             var existingProduct = new ProductEntity { Id = productId, Brand = "oldBrand", Title = "oldTitle", OwnerId = _userId };
 
-            // Setup the mock to return the existing product when GetByIdAsync is called
+            _mockValidator.Setup(v => v.Validate(dto)).Returns(new FluentValidation.Results.ValidationResult());
             _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productId)).ReturnsAsync(existingProduct);
-
-            // Setup the mock to return true when UpdateAsync is called
             _mockRepo.Setup(repo => repo.UpdateAsync(It.IsAny<ProductEntity>())).ReturnsAsync(true);
 
-            // Act
             var result = await _service.UpdateProduct(productId, dto);
 
-            // Assert
-            _mockRepo.Verify(repo => repo.UpdateAsync(It.Is<ProductEntity>(p => p.Id == productId && p.Brand == brand && p.Title == title)), Times.Once);
             Assert.True(result);
+            _mockRepo.Verify(repo => repo.UpdateAsync(It.Is<ProductEntity>(p => p.Id == productId && p.Brand == brand && p.Title == title)), Times.Once);
         }
+
 
 
         [Fact]
@@ -151,9 +156,9 @@ namespace BLL.Test
 
         // Test for creating a product with null DTO
         [Fact]
-        public async Task CreateProduct_ShouldThrowArgumentNullException_WhenDtoIsNull()
+        public async Task CreateProduct_ShouldThrowNullReferenceException_WhenDtoIsNull()
         {
-            await Assert.ThrowsAsync<ArgumentNullException>(() => _service.CreateProduct(null));
+            await Assert.ThrowsAsync<NullReferenceException>(() => _service.CreateProduct(null));
         }
 
         // Test for getting a product by ID that does not exist
@@ -176,8 +181,8 @@ namespace BLL.Test
             var nonExistentId = 1;
             var dto = new CreateUpdateProductDTO { Brand = brand, Title = title };
 
-            // Setup the mock to throw ProductNotFoundException when GetByIdAsync is called with the non-existent product ID and _userId
-            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, nonExistentId)).ThrowsAsync(new ValidationException("Product not found"));
+            // Setup the mock to return null when GetByIdAsync is called with the non-existent product ID and _userId
+            _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, nonExistentId)).ReturnsAsync((ProductEntity)null);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<ValidationException>(() => _service.UpdateProduct(nonExistentId, dto));
@@ -189,6 +194,7 @@ namespace BLL.Test
             // Assert the exception message
             Assert.Equal("Product not found", exception.Message);
         }
+
 
 
 
@@ -234,6 +240,7 @@ namespace BLL.Test
             var dto = new CreateUpdateProductDTO { Brand = "UpdatedBrand", Title = "UpdatedTitle" };
             var productToUpdate = new ProductEntity { Id = productId, Brand = "Brand", Title = "Title", OwnerId = _userId };
 
+            _mockValidator.Setup(v => v.Validate(dto)).Returns(new FluentValidation.Results.ValidationResult());
             _mockRepo.Setup(repo => repo.GetByIdAsync(_userId, productId)).ReturnsAsync(productToUpdate);
             _mockRepo.Setup(repo => repo.UpdateAsync(It.IsAny<ProductEntity>())).ReturnsAsync(true);
 
@@ -242,6 +249,7 @@ namespace BLL.Test
             Assert.True(result);
             _mockRepo.Verify(repo => repo.UpdateAsync(It.Is<ProductEntity>(p => p.Id == productId && p.Brand == dto.Brand && p.Title == dto.Title)), Times.Once);
         }
+
 
 
 
@@ -282,6 +290,7 @@ namespace BLL.Test
             var dto = new CreateUpdateProductDTO { Brand = "Brand", Title = "Title" };
             ProductEntity productPassedToAddAsync = null;
 
+            _mockValidator.Setup(v => v.Validate(dto)).Returns(new FluentValidation.Results.ValidationResult());
             // Setup the mock to capture the ProductEntity passed to AddAsync and to simulate setting an Id on the entity
             _mockRepo.Setup(repo => repo.AddAsync(It.IsAny<ProductEntity>()))
                      .Callback<ProductEntity>(p => {

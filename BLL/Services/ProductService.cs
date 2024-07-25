@@ -60,26 +60,23 @@ namespace BLL.Services
 
         public async Task<bool> UpdateProduct(int id, CreateUpdateProductDTO dto)
         {
-            var validationResult = _productValidator.Validate(dto);
-            if (!validationResult.IsValid)
-            {
-                throw new ValidationException(validationResult.Errors.First().ErrorMessage);
-            }
             var userId = GetCurrentUserId();
-
             var product = await _productRepository.GetByIdAsync(userId, id);
             if (product == null)
             {
                 throw new ValidationException("Product not found");
             }
 
-            if (product.OwnerId != userId)
-            {
-                throw new UnauthorizedAccessException("You are not the owner of this product");
-            }
+            // Update product properties
+            product.Brand = dto.Brand;
+            product.Title = dto.Title;
 
-            product = dto.ToEntity();
-            product.Id = id;
+            // Validate the updated product
+            var validationResult = _productValidator.Validate(dto);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors);
+            }
 
             return await _productRepository.UpdateAsync(product);
         }

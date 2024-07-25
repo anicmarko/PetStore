@@ -10,6 +10,7 @@ using Moq;
 using NSubstitute;
 using BLL.DTOs;
 using DAL.Entities;
+using FluentValidation;
 
 namespace BLL.Test
 {
@@ -18,13 +19,23 @@ namespace BLL.Test
         private readonly UserService _userService;
         private readonly Mock<IUserRepository> _userRepositoryMock;
         private readonly Mock<IConfiguration> _configurationMock;
+        private readonly Mock<IValidator<LoginDTO>> _loginValidatorMock;
+        private readonly Mock<IValidator<RegisterUserDTO>> _registerValidatorMock;
 
         public UserServiceTest()
         {
             _userRepositoryMock = new Mock<IUserRepository>();
             _configurationMock = new Mock<IConfiguration>();
+            _loginValidatorMock = new Mock<IValidator<LoginDTO>>();
+            _registerValidatorMock = new Mock<IValidator<RegisterUserDTO>>();
 
-            _userService = new UserService(_userRepositoryMock.Object, _configurationMock.Object);
+
+            _userService = new UserService(
+                _userRepositoryMock.Object,
+                _configurationMock.Object,
+                _loginValidatorMock.Object,
+                _registerValidatorMock.Object
+            );
             _configurationMock.Setup(c => c["JwtSettings:Key"]).Returns("YXNkZmFzZGZhc2RmYXNkZmFzZGZhc2RmYXNkZmF");
             _configurationMock.Setup(c => c["JwtSettings:Issuer"]).Returns("TestIssuer");
             _configurationMock.Setup(c => c["JwtSettings:Audience"]).Returns("TestAudience");
