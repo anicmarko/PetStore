@@ -22,64 +22,29 @@ namespace API.Controllers
         [HttpPost]
         public async Task<ActionResult<AddRelationshipResponse>> AddProductToUser([FromBody] ProductToUserDTO dto)
         {
-            try
-            {
-                var response = await _userProductService.AddProductToUserAsync(dto);
-                return Ok(response);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var response = await _userProductService.AddProductToUserAsync(dto);
+            return Ok(response);
         }
 
         [HttpGet("{userId}")]
         public async Task<ActionResult> GetProductsByUser(Guid userId)
         {
-            try
-            {
-                var products = await _userProductService.GetProductsByUserAsync(userId);
-                return Ok(products);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var products = await _userProductService.GetProductsByUserAsync(userId);
+            return Ok(products);
         }
-
-
 
         [HttpDelete("{userId}/{productId}")]
         public async Task<ActionResult> RemoveProductFromUser(Guid userId, int productId)
         {
-            try
+            bool isDeleted = await _userProductService.RemoveProductFromUserAsync(userId, productId);
+            if (!isDeleted)
             {
-                bool isDeleted = await _userProductService.RemoveProductFromUserAsync(userId, productId);
-                if(!isDeleted)
-                {
-                    return NotFound("Product not found or not associated with the user.");
-                }
-                return Ok("Succesfully removed");
+                return NotFound("Product not found or not associated with the user.");
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            return Ok("Successfully removed");
         }
 
-      
+
 
     }
 }

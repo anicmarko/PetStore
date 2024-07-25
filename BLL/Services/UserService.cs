@@ -2,6 +2,8 @@
 using BLL.Interfaces;
 using DAL.Entities;
 using DAL.Interfaces;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -18,18 +20,28 @@ namespace BLL.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
-
         private readonly IConfiguration _configuration;
+        private readonly IValidator<LoginDTO> _loginValidator;
+        private readonly IValidator<RegisterUserDTO> _registerValidator;
 
-        public UserService(IUserRepository userRepository, IConfiguration configuration)
+
+        public UserService(IUserRepository userRepository, IConfiguration configuration, IValidator<LoginDTO> loginValidator, IValidator<RegisterUserDTO> registerValidator)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _loginValidator = loginValidator;
+            _registerValidator = registerValidator;
         }
 
 
         public async Task<LoginResponse> LoginUser(LoginDTO dto)
         {
+            var validationResult = _loginValidator.Validate(dto);
+            if (!validationResult.IsValid)
+            {
+                return new LoginResponse(false, validationResult.Errors.First().ErrorMessage);
+            }
+
             var getUser = await _userRepository.GetUserByEmailAsync(dto.Email);
 
             if (getUser == null || !BCrypt.Net.BCrypt.Verify(dto.Password, getUser.Password))
@@ -37,12 +49,17 @@ namespace BLL.Services
                 return new LoginResponse(false, "Invalid email or password");
             }
             return new LoginResponse(true, "Login successful", GenerateJWTToken(getUser));
-
         }
 
 
         public async Task<RegistrationResponse> RegisterUser(RegisterUserDTO dto)
         {
+            ValidationResult validationResult = _registerValidator.Validate(dto);
+            if (!validationResult.IsValid)
+            {
+                return new RegistrationResponse(false, validationResult.Errors.First().ErrorMessage);
+            }
+
             var getUser = await _userRepository.GetUserByEmailAsync(dto.Email!);
 
             if (getUser != null)
@@ -56,7 +73,7 @@ namespace BLL.Services
             });
 
             await _userRepository.SaveChanges();
-            return new RegistrationResponse(true, "User is registered successful");
+            return new RegistrationResponse(true, "User is registered successfully");
         }
 
         private string GenerateJWTToken(UserEntity user)

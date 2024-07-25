@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using BLL.DTOs;
 using BLL.Interfaces;
+using BLL.Services;
 
 namespace API.Controllers
 {
@@ -9,34 +10,37 @@ namespace API.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly IUserService _user;
+        private readonly IUserService _userService;
 
-        public UsersController(IUserService user)
+        public UsersController(IUserService userService)
         {
-            _user = user;
+            _userService = userService;
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponse>> LoginUserAsync(LoginDTO dto)
         {
-            var response = await _user.LoginUser(dto);
+            var response = await _userService.LoginUser(dto);
 
-            if (response == null || !response.Flag)
-                return Unauthorized("Authentication failed.");
+            if (!response.Flag)
+            {
+                return BadRequest(response.Message);
+            }
 
-
-            return Ok(response);
+            return Ok(new { Token = response.Token, Message = response.Message });
         }
 
         [HttpPost("register")]
         public async Task<ActionResult<RegistrationResponse>> RegisterUserAsync(RegisterUserDTO dto)
         {
-            var response = await _user.RegisterUser(dto);
+            var response = await _userService.RegisterUser(dto);
 
-            if (response == null)
-                return Unauthorized(response);
+            if (!response.Flag)
+            {
+                return BadRequest(response.Message);
+            }
 
-            return Ok(response);
+            return Ok(response.Message);
         }
 
     }

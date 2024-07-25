@@ -17,6 +17,7 @@ using System;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using API.Middleware;
 
 namespace API
 {
@@ -33,6 +34,10 @@ namespace API
             });
 
             builder.Services.AddScoped<IValidator<CreateUpdateProductDTO>, ProductValidation>();
+            builder.Services.AddScoped<IValidator<LoginDTO>, LoginValidation>();
+            builder.Services.AddScoped<IValidator<RegisterUserDTO>, RegisterValidation>();
+            builder.Services.AddScoped<IValidator<ProductToUserDTO>, UserProductValidation>();
+
 
             builder.Services.AddScoped<IProductServices, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -80,7 +85,7 @@ namespace API
                 {
                     Name = "Authorization",
                     Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer",
+                    Scheme = "bearer",
                     BearerFormat = "JWT",
                     In = Microsoft.OpenApi.Models.ParameterLocation.Header,
                 });
@@ -124,6 +129,8 @@ namespace API
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 
             app.MapControllers();

@@ -6,10 +6,10 @@ using BLL.Interfaces;
 using DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using BLL.Extensions;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using FluentValidation;
 
 namespace BLL.Services
 {
@@ -17,19 +17,26 @@ namespace BLL.Services
     {
         private readonly IProductRepository _productRepository;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IValidator<CreateUpdateProductDTO> _productValidator;
 
 
-        public ProductService(IProductRepository productRepository, IHttpContextAccessor httpContextAccessor)
+        public ProductService(IProductRepository productRepository, IHttpContextAccessor httpContextAccessor, IValidator<CreateUpdateProductDTO> productValidator)
         {
             _productRepository = productRepository;
             _httpContextAccessor = httpContextAccessor;
+            _productValidator = productValidator;
         }
 
         public async Task<ProductEntity> CreateProduct(CreateUpdateProductDTO dto)
         {
-            var userId = GetCurrentUserId();
 
-            //ArgumentNullException.ThrowIfNull(dto);
+            var validationResult = _productValidator.Validate(dto);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors.First().ErrorMessage);
+            }
+
+            var userId = GetCurrentUserId();
 
             var newProduct = dto.ToEntity();
             newProduct.OwnerId = userId;
@@ -53,6 +60,11 @@ namespace BLL.Services
 
         public async Task<bool> UpdateProduct(int id, CreateUpdateProductDTO dto)
         {
+            var validationResult = _productValidator.Validate(dto);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors.First().ErrorMessage);
+            }
             var userId = GetCurrentUserId();
 
             var product = await _productRepository.GetByIdAsync(userId, id);
