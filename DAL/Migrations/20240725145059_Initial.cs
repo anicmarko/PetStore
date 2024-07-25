@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class _7242024446 : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,6 +33,7 @@ namespace DAL.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Brand = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     OwnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)

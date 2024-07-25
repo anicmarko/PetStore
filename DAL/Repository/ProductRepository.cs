@@ -63,9 +63,46 @@ namespace DAL.Repository
             return true;
         }
 
+        public async Task<int> GetTotalProducts()
+        {
+            return await _context.Products.CountAsync();
+        }
+
+        public async Task<decimal> GetAveragePrice()
+        {
+            return await _context.Products.AverageAsync(p => p.Price);
+        }
+
+        public async Task<decimal> GetMinPrice()
+        {
+            return await _context.Products.MinAsync(p => p.Price);
+        }
+
+        public async Task<decimal> GetMaxPrice()
+        {
+            return await _context.Products.MaxAsync(p => p.Price);
+        }
+
+        public async Task<int> GetTotalAssignments()
+        {
+            return await _context.Users.SelectMany(user => user.Products).CountAsync();
+        }
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<ProductEntity>> GetPopularProducts(int topN)
+        {
+            return await _context.Products
+                .Include(p => p.Users) // Include the Users who have been assigned the product
+                .Where(p => p.Users.Any()) // Exclude products with no assignments
+                .OrderByDescending(p => p.Users.Count) // Sort by the number of assignments
+                .Take(topN) // Limit the number of results
+                .ToListAsync();
+        }
+
+
+
     }
 }

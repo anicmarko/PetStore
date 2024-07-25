@@ -19,11 +19,13 @@ namespace API.Controllers
         
         private readonly IValidator<CreateUpdateProductDTO> _productValidator;
 
+        private readonly int _defaultTopN;
 
-        public ProductsController(IProductServices productService, IValidator<CreateUpdateProductDTO> validator)
+        public ProductsController(IProductServices productService, IValidator<CreateUpdateProductDTO> validator, IConfiguration configuration)
         {
             _productService = productService;
             _productValidator = validator;
+            _defaultTopN = configuration.GetValue("DefaultTopN", 10);
         }
 
         [HttpPost]
@@ -133,5 +135,26 @@ namespace API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+
+
+        [Authorize]
+        [HttpGet("statistics")]
+        public async Task<ActionResult<ProductStatisticsDTO>> GetProductStatistics()
+        {
+            var statistics = await _productService.GetProductStatistics();
+            return Ok(statistics);
+        }
+
+        [Authorize]
+        [HttpGet("popular")]
+
+        public async Task<ActionResult<List<PopularProductDTO>>> GetPopularProducts([FromQuery] int? topN)
+        {
+            var numberOfProducts = topN ?? _defaultTopN;
+            var popularProducts = await _productService.GetPopularProducts(numberOfProducts);
+            return Ok(popularProducts);
+        }
+
+
     }
 }

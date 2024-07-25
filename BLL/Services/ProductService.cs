@@ -29,7 +29,7 @@ namespace BLL.Services
         {
             var userId = GetCurrentUserId();
 
-            ArgumentNullException.ThrowIfNull(dto);
+            //ArgumentNullException.ThrowIfNull(dto);
 
             var newProduct = dto.ToEntity();
             newProduct.OwnerId = userId;
@@ -48,7 +48,7 @@ namespace BLL.Services
         public async Task<ProductEntity> GetProductById(int id)
         {
             var userId = GetCurrentUserId();
-            return await _productRepository.GetByIdAsync(userId,id);
+            return await _productRepository.GetByIdAsync(userId, id);
         }
 
         public async Task<bool> UpdateProduct(int id, CreateUpdateProductDTO dto)
@@ -80,16 +80,16 @@ namespace BLL.Services
 
             var product = await _productRepository.GetByIdAsync(userId, id);
 
-            if(product == null)
-                {
+            if (product == null)
+            {
                 throw new ValidationException("Product not found");
             }
 
-            if(product.OwnerId != userId)
+            if (product.OwnerId != userId)
             {
                 throw new UnauthorizedAccessException("You are not the owner of this product");
             }
-            return await _productRepository.DeleteAsync(userId,id);
+            return await _productRepository.DeleteAsync(userId, id);
         }
 
         private Guid GetCurrentUserId()
@@ -102,5 +102,41 @@ namespace BLL.Services
             }
             return Guid.Parse(userIdClaim.Value);
         }
+
+        public async Task<ProductStatisticsDTO> GetProductStatistics()
+        {
+            var totalAssignments = await _productRepository.GetTotalAssignments();
+            var maxPrice = await _productRepository.GetMaxPrice();
+            var minPrice = await _productRepository.GetMinPrice();
+            var avgPrice = await _productRepository.GetAveragePrice();
+            var totalProducts = await _productRepository.GetTotalProducts();
+
+            ProductStatisticsDTO dto = new ProductStatisticsDTO
+            {
+                AveragePrice = avgPrice,
+                TotalProducts = totalProducts,
+                TotalAssignments = totalAssignments,
+                MaxPrice = maxPrice,
+                MinPrice = minPrice
+            };
+            return dto;
+        }
+
+        //TODO : take topN from appsettings.json
+        public async Task<List<PopularProductDTO>> GetPopularProducts(int topN)
+        {
+            var popularProducts = await _productRepository.GetPopularProducts(topN);
+
+            return popularProducts
+                 .Select(product => new PopularProductDTO
+                 {
+                     ProductId = product.Id,
+                     Name = product.Brand + " " + product.Title,
+                     AssignmentCount = product.Users.Count,
+                     CreatedByUserName = product.Owner.Name
+                 }).ToList();
+        
+
+    }
     }
 }

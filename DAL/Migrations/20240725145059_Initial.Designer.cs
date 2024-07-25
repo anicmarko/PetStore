@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240724144818_7242024446")]
-    partial class _7242024446
+    [Migration("20240725145059_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -42,6 +42,9 @@ namespace DAL.Migrations
 
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Title")
                         .IsRequired()

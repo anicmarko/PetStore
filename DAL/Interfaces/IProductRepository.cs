@@ -1,4 +1,5 @@
 ﻿using DAL.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Interfaces
 {
@@ -10,6 +11,13 @@ namespace DAL.Interfaces
         Task<ProductEntity> GetByIdAsync(Guid userId,int id);
         Task<bool> UpdateAsync(ProductEntity product);
 
+        Task<int> GetTotalProducts();
+        Task<decimal> GetAveragePrice();
+        Task<decimal> GetMinPrice();
+        Task<decimal> GetMaxPrice();
+        Task<int> GetTotalAssignments();
+        
+        Task<List<ProductEntity>> GetPopularProducts(int topN);
         Task SaveChangesAsync();
     }
 }

@@ -17,6 +17,7 @@ namespace BLL.Extensions
             {
                 Brand = dto.Brand,
                 Title = dto.Title,
+                Price = dto.Price
             };
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Entities
 {
@@ -10,6 +11,8 @@ namespace DAL.Entities
 
         public required string Title { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Price { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public DateTime UpdatedAt { get; set; } = DateTime.Now;

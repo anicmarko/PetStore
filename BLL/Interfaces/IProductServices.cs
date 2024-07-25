@@ -11,6 +11,9 @@ namespace BLL.Interfaces
         Task<bool> UpdateProduct(int id, CreateUpdateProductDTO dto);
 
         Task<bool> DeleteProduct(int id);
+        Task<ProductStatisticsDTO> GetProductStatistics();
+
+        Task<List<PopularProductDTO>> GetPopularProducts(int topN);
 
     }
 }

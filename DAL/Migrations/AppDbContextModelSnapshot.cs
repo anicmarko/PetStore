@@ -40,6 +40,9 @@ namespace DAL.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
