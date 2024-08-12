@@ -10,11 +10,11 @@ namespace API.Controllers
     [Route("api/[controller]")]
     [Authorize]
     [ApiController]
-    public class UserProductContoller : ControllerBase
+    public class UserProductController : ControllerBase
     {
         private readonly IUserProductService _userProductService;
 
-        public UserProductContoller(IUserProductService userProductService)
+        public UserProductController(IUserProductService userProductService)
         {
             _userProductService = userProductService;
         }
